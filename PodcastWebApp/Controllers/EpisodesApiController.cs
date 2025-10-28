@@ -25,18 +25,32 @@ namespace PodcastWebApp.Controllers
 
         // POST: api/episodes
         [HttpPost]
+        [RequestSizeLimit(524288000)] // 500MB
+        [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
         public async Task<IActionResult> CreateEpisode()
         {
             try
             {
+                _logger.LogInformation("===== EPISODE UPLOAD STARTED =====");
+                _logger.LogInformation($"Content-Type: {Request.ContentType}");
+                _logger.LogInformation($"Content-Length: {Request.ContentLength}");
+                
                 var form = await Request.ReadFormAsync();
+                _logger.LogInformation($"Form fields count: {form.Count}");
+                _logger.LogInformation($"Files count: {form.Files.Count}");
 
                 // Get the uploaded audio file
                 var audioFile = form.Files.GetFile("audioFile");
                 if (audioFile == null || audioFile.Length == 0)
                 {
-                    return BadRequest(new { message = "No audio file provided" });
+                    _logger.LogError("No audio file found in request");
+                    return BadRequest(new { 
+                        message = "No audio file provided",
+                        debug = $"Form files: {string.Join(", ", form.Files.Select(f => f.Name))}"
+                    });
                 }
+
+                _logger.LogInformation($"Audio file received: {audioFile.FileName}, Size: {audioFile.Length} bytes");
 
                 // Validate file type
                 var allowedTypes = new[] { "audio/mpeg", "audio/wav", "audio/mp4", "audio/x-m4a", "audio/mp3" };
@@ -46,12 +60,14 @@ namespace PodcastWebApp.Controllers
                     !fileName.EndsWith(".wav") && 
                     !fileName.EndsWith(".m4a"))
                 {
+                    _logger.LogError($"Invalid file type: {audioFile.ContentType}");
                     return BadRequest(new { message = "Invalid file type. Only MP3, WAV, and M4A files are allowed." });
                 }
 
                 // Validate file size (500MB max)
                 if (audioFile.Length > 500 * 1024 * 1024)
                 {
+                    _logger.LogError($"File too large: {audioFile.Length} bytes");
                     return BadRequest(new { message = "File size must be less than 500MB" });
                 }
 
@@ -59,7 +75,7 @@ namespace PodcastWebApp.Controllers
                 var fileExtension = Path.GetExtension(audioFile.FileName);
                 var s3FileName = $"episodes/{Guid.NewGuid()}{fileExtension}";
 
-                _logger.LogInformation($"Attempting to upload file to S3: Bucket={_bucketName}, Key={s3FileName}");
+                _logger.LogInformation($"Uploading to S3: Bucket={_bucketName}, Key={s3FileName}");
 
                 // Upload to S3
                 try
@@ -72,7 +88,6 @@ namespace PodcastWebApp.Controllers
                             Key = s3FileName,
                             InputStream = stream,
                             ContentType = audioFile.ContentType
-                            // REMOVED: CannedACL - bucket uses bucket policy instead of ACLs
                         };
 
                         var response = await _s3Client.PutObjectAsync(uploadRequest);
@@ -98,6 +113,11 @@ namespace PodcastWebApp.Controllers
                         details = "Check your AWS credentials and S3 bucket permissions"
                     });
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"S3 Upload Exception: {ex.Message}\n{ex.StackTrace}");
+                    return StatusCode(500, new { message = "Failed to upload to S3", error = ex.Message });
+                }
 
                 // Generate S3 URL
                 var audioFileURL = $"https://{_bucketName}.s3.{_awsRegion}.amazonaws.com/{s3FileName}";
@@ -109,11 +129,11 @@ namespace PodcastWebApp.Controllers
                     using var metadataStream = audioFile.OpenReadStream();
                     var audioFileTag = TagLib.File.Create(new StreamFileAbstraction(audioFile.FileName, metadataStream));
                     duration = (int)audioFileTag.Properties.Duration.TotalSeconds;
+                    _logger.LogInformation($"Extracted duration: {duration} seconds");
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning($"Could not extract audio duration: {ex.Message}");
-                    // Use the duration from the form if TagLib fails
                     if (!string.IsNullOrEmpty(form["duration"]))
                     {
                         duration = int.Parse(form["duration"].ToString());
@@ -144,6 +164,7 @@ namespace PodcastWebApp.Controllers
                         }
                         
                         thumbnailURL = $"https://{_bucketName}.s3.{_awsRegion}.amazonaws.com/{thumbFileName}";
+                        _logger.LogInformation($"Uploaded thumbnail: {thumbFileName}");
                     }
                     catch (Exception ex)
                     {
@@ -151,41 +172,71 @@ namespace PodcastWebApp.Controllers
                     }
                 }
 
+                _logger.LogInformation("Saving episode to database...");
+
                 // Create episode in database
-                var episode = new Episode
+                try
                 {
-                    Title = form["title"].ToString(),
-                    Description = form["description"].ToString(),
-                    PodcastID = int.Parse(form["podcastId"].ToString()),
-                    Host = form["host"].ToString() ?? string.Empty,
-                    Topic = form["topic"].ToString() ?? string.Empty,
-                    Duration = duration,
-                    ReleaseDate = string.IsNullOrEmpty(form["releaseDate"]) 
-                        ? DateTime.UtcNow 
-                        : DateTime.Parse(form["releaseDate"].ToString()),
-                    AudioFileURL = audioFileURL,
-                    ThumbnailURL = thumbnailURL,
-                    Views = 0,
-                    PlayCount = 0,
-                    IsApproved = true
-                };
+                    var episode = new Episode
+                    {
+                        Title = form["title"].ToString(),
+                        Description = form["description"].ToString(),
+                        PodcastID = int.Parse(form["podcastId"].ToString()),
+                        Host = form["host"].ToString() ?? string.Empty,
+                        Topic = form["topic"].ToString() ?? string.Empty,
+                        Duration = duration,
+                        ReleaseDate = string.IsNullOrEmpty(form["releaseDate"]) 
+                            ? DateTime.UtcNow 
+                            : DateTime.Parse(form["releaseDate"].ToString()),
+                        AudioFileURL = audioFileURL,
+                        ThumbnailURL = thumbnailURL,
+                        Views = 0,
+                        PlayCount = 0,
+                        IsApproved = true
+                    };
 
-                _context.Episodes.Add(episode);
-                await _context.SaveChangesAsync();
+                    _context.Episodes.Add(episode);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation($"Episode saved successfully with ID: {episode.EpisodeID}");
 
-                return Ok(new 
-                { 
-                    message = "Episode uploaded successfully to S3", 
-                    episodeId = episode.EpisodeID,
-                    audioUrl = audioFileURL,
-                    thumbnailUrl = thumbnailURL,
-                    duration = episode.Duration
-                });
+                    return Ok(new 
+                    { 
+                        message = "Episode uploaded successfully", 
+                        episodeId = episode.EpisodeID,
+                        audioUrl = audioFileURL,
+                        thumbnailUrl = thumbnailURL,
+                        duration = episode.Duration
+                    });
+                }
+                catch (Exception dbEx)
+                {
+                    _logger.LogError($"Database error: {dbEx.Message}\n{dbEx.StackTrace}");
+                    
+                    // Try to delete the uploaded S3 file since DB save failed
+                    try
+                    {
+                        await _s3Client.DeleteObjectAsync(_bucketName, s3FileName);
+                        _logger.LogInformation("Rolled back S3 upload");
+                    }
+                    catch { }
+                    
+                    return StatusCode(500, new { 
+                        message = "Failed to save episode to database", 
+                        error = dbEx.Message,
+                        innerError = dbEx.InnerException?.Message
+                    });
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Unexpected error: {ex.Message}\n{ex.StackTrace}");
-                return BadRequest(new { message = "Failed to create episode", error = ex.Message, stackTrace = ex.StackTrace });
+                return StatusCode(500, new { 
+                    message = "Failed to create episode", 
+                    error = ex.Message, 
+                    stackTrace = ex.StackTrace,
+                    innerError = ex.InnerException?.Message
+                });
             }
         }
 

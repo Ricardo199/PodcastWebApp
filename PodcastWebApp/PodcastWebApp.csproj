@@ -13,6 +13,9 @@
     <None Include="aws-windows-deployment-manifest.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="web.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.5.2" />
