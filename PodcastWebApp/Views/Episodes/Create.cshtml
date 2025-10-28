@@ -1,0 +1,276 @@
+@{
+    ViewData["Title"] = "Upload Episode";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-upload text-primary me-2"></i>
+                    Upload New Episode
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="episodeForm" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Episode Title *</label>
+                                <input type="text" class="form-control" id="title" name="title" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="podcastId" class="form-label">Podcast *</label>
+                                <select class="form-select" id="podcastId" name="podcastId" required>
+                                    <option value="">Select a podcast</option>
+                                    <!-- This would be populated from the server -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Describe what this episode is about..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="host" class="form-label">Host</label>
+                                <input type="text" class="form-control" id="host" name="host" placeholder="Episode host">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="topic" class="form-label">Topic/Category</label>
+                                <select class="form-select" id="topic" name="topic">
+                                    <option value="">Select topic</option>
+                                    <option value="technology">Technology</option>
+                                    <option value="business">Business</option>
+                                    <option value="education">Education</option>
+                                    <option value="entertainment">Entertainment</option>
+                                    <option value="health">Health & Wellness</option>
+                                    <option value="science">Science</option>
+                                    <option value="sports">Sports</option>
+                                    <option value="news">News & Politics</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="duration" class="form-label">Duration (minutes)</label>
+                                <input type="number" class="form-control" id="duration" name="duration" min="1" placeholder="45">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="releaseDate" class="form-label">Release Date</label>
+                        <input type="datetime-local" class="form-control" id="releaseDate" name="releaseDate" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")">
+                    </div>
+
+                    <!-- Audio File Upload -->
+                    <div class="mb-4">
+                        <label for="audioFile" class="form-label">Audio File *</label>
+                        <div class="upload-area border border-dashed rounded p-4 text-center" id="uploadArea">
+                            <i class="bi bi-cloud-upload text-muted" style="font-size: 3rem;"></i>
+                            <h6 class="mt-2">Drag & drop your audio file here</h6>
+                            <p class="text-muted small mb-3">or click to browse (MP3, WAV, M4A - Max 500MB)</p>
+                            <input type="file" class="form-control d-none" id="audioFile" name="audioFile" accept=".mp3,.wav,.m4a" required>
+                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('audioFile').click()">
+                                <i class="bi bi-folder2-open me-1"></i>Choose File
+                            </button>
+                        </div>
+                        <div id="uploadProgress" class="mt-3 d-none">
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Uploading to S3...</small>
+                        </div>
+                        <div id="fileInfo" class="mt-2 d-none">
+                            <small class="text-success">
+                                <i class="bi bi-check-circle me-1"></i>
+                                <span id="fileName"></span> (<span id="fileSize"></span>)
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Thumbnail Upload (Optional) -->
+                    <div class="mb-4">
+                        <label for="thumbnailFile" class="form-label">Episode Thumbnail (Optional)</label>
+                        <input type="file" class="form-control" id="thumbnailFile" name="thumbnailFile" accept=".jpg,.jpeg,.png,.webp">
+                        <small class="text-muted">Recommended: 1400x1400px, JPG or PNG</small>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" id="saveDraftBtn">
+                                <i class="bi bi-save me-1"></i>Save as Draft
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="publishBtn">
+                                <i class="bi bi-broadcast me-1"></i>Publish Episode
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const audioFileInput = document.getElementById('audioFile');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const fileInfo = document.getElementById('fileInfo');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('border-primary', 'bg-light');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('border-primary', 'bg-light');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('border-primary', 'bg-light');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                audioFileInput.files = files;
+                handleFileSelect();
+            }
+        });
+
+        audioFileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            const file = audioFileInput.files[0];
+            if (file) {
+                // Validate file type
+                const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/x-m4a'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Please select a valid audio file (MP3, WAV, M4A)');
+                    return;
+                }
+
+                // Validate file size (500MB max)
+                if (file.size > 500 * 1024 * 1024) {
+                    alert('File size must be less than 500MB');
+                    return;
+                }
+
+                // Show file info
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                fileInfo.classList.remove('d-none');
+
+                // Auto-detect duration if possible
+                const audio = new Audio();
+                audio.src = URL.createObjectURL(file);
+                audio.addEventListener('loadedmetadata', () => {
+                    const durationMinutes = Math.round(audio.duration / 60);
+                    document.getElementById('duration').value = durationMinutes;
+                    URL.revokeObjectURL(audio.src);
+                });
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Form submission
+        document.getElementById('episodeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const publishBtn = document.getElementById('publishBtn');
+            
+            publishBtn.disabled = true;
+            publishBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Publishing...';
+            
+            try {
+                // First upload the audio file to S3 (if needed)
+                if (audioFileInput.files[0]) {
+                    uploadProgress.classList.remove('d-none');
+                    
+                    // Simulate upload progress
+                    const progressBar = uploadProgress.querySelector('.progress-bar');
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += Math.random() * 15;
+                        if (progress > 90) progress = 90;
+                        progressBar.style.width = progress + '%';
+                    }, 200);
+                    
+                    // In a real implementation, you would upload to S3 here
+                    // For now, we'll simulate it
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    clearInterval(interval);
+                    progressBar.style.width = '100%';
+                    
+                    // Add the S3 URL to form data (simulated)
+                    formData.set('audioFileURL', 'https://podcast-bucket.s3.amazonaws.com/episodes/' + Date.now() + '.mp3');
+                }
+                
+                // Submit to API
+                const response = await fetch('/api/episodes', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/Episodes';
+                } else {
+                    throw new Error('Failed to publish episode');
+                }
+                
+            } catch (error) {
+                alert('Error publishing episode: ' + error.message);
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = '<i class="bi bi-broadcast me-1"></i>Publish Episode';
+                uploadProgress.classList.add('d-none');
+            }
+        });
+
+        // Save as draft
+        document.getElementById('saveDraftBtn').addEventListener('click', function() {
+            // Implementation for saving as draft
+            alert('Draft saved! (Feature to be implemented)');
+        });
+
+        // Load user's podcasts
+        fetch('/api/podcasts/user')
+            .then(response => response.json())
+            .then(podcasts => {
+                const select = document.getElementById('podcastId');
+                podcasts.forEach(podcast => {
+                    const option = document.createElement('option');
+                    option.value = podcast.podcastID;
+                    option.textContent = podcast.title;
+                    select.appendChild(option);
+                });
+            })
+            .catch(() => {
+                // If no podcasts, show message
+                const select = document.getElementById('podcastId');
+                select.innerHTML = '<option value="">Create a podcast first</option>';
+            });
+    </script>
+}

@@ -1,0 +1,228 @@
+@model List<PodcastWebApp.Models.Episode>
+@{
+    ViewData["Title"] = "Browse Episodes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">
+        <i class="bi bi-collection-play text-primary me-2"></i>
+        Browse Episodes
+    </h1>
+    @if (User.IsInRole("Podcaster"))
+    {
+        <a href="@Url.Action("Create")" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Upload Episode
+        </a>
+    }
+</div>
+
+<!-- Search and Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Search" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="q" placeholder="Search episodes..." value="@ViewBag.Query">
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="sortBy">
+                    <option value="recent">Most Recent</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="title">Title A-Z</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="topic">
+                    <option value="">All Topics</option>
+                    <option value="technology">Technology</option>
+                    <option value="business">Business</option>
+                    <option value="education">Education</option>
+                    <option value="entertainment">Entertainment</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary w-100">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Episodes Grid -->
+<div class="row g-4" id="episodesGrid">
+    @if (Model?.Any() == true)
+    {
+        @foreach (var episode in Model)
+        {
+            <div class="col-md-6 col-lg-4" id="episode-@episode.EpisodeID">
+                <div class="card h-100 shadow-sm episode-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="episode-thumbnail me-3">
+                                <i class="bi bi-play-circle-fill text-primary fs-1"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="card-title mb-1">@episode.Title</h6>
+                                <small class="text-muted">@episode.Podcast?.Title</small>
+                            </div>
+                        </div>
+                        
+                        <p class="card-text small text-muted mb-3">@episode.Description</p>
+                        
+                        <div class="episode-meta mb-3">
+                            <div class="d-flex justify-content-between text-muted small">
+                                <span><i class="bi bi-clock me-1"></i>@episode.Duration sec</span>
+                                <span><i class="bi bi-eye me-1"></i>@episode.Views views</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted small mt-1">
+                                <span><i class="bi bi-calendar me-1"></i>@episode.ReleaseDate.ToString("MMM dd, yyyy")</span>
+                                @if (!string.IsNullOrEmpty(episode.Host))
+                                {
+                                    <span><i class="bi bi-person me-1"></i>@episode.Host</span>
+                                }
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center gap-2">
+                            <div class="btn-group" role="group">
+                                <a href="@Url.Action("Details", "Episodes", new { id = episode.EpisodeID })" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-play-fill me-1"></i>Play
+                                </a>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="shareEpisode(@episode.EpisodeID)">
+                                    <i class="bi bi-share"></i>
+                                </button>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                @if (!string.IsNullOrEmpty(episode.Topic))
+                                {
+                                    <span class="badge bg-secondary">@episode.Topic</span>
+                                }
+                                @if (User.IsInRole("Podcaster") || User.IsInRole("Admin"))
+                                {
+                                    <button class="btn btn-danger btn-sm" onclick="deleteEpisode(@episode.EpisodeID, '@episode.Title')" title="Delete Episode">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-collection-play text-muted" style="font-size: 4rem;"></i>
+                <h4 class="text-muted mt-3">No episodes found</h4>
+                <p class="text-muted">Try adjusting your search criteria or browse all episodes.</p>
+                <a href="@Url.Action("Index")" class="btn btn-primary">Browse All Episodes</a>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function shareEpisode(episodeId) {
+            const url = `${window.location.origin}/Episodes/Details/${episodeId}`;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Check out this episode',
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url);
+                showToast('Link copied to clipboard!', 'success');
+            }
+        }
+        
+        function deleteEpisode(episodeId, episodeTitle) {
+            if (confirm(`Are you sure you want to delete "${episodeTitle}"?\n\nThis will permanently delete the episode and its audio file from S3.`)) {
+                // Show loading state
+                const episodeCard = document.getElementById(`episode-${episodeId}`);
+                const deleteBtn = episodeCard.querySelector('.btn-danger');
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                
+                // Call the delete API
+                fetch(`/api/episodes/${episodeId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'Failed to delete episode');
+                        });
+                    }
+                })
+                .then(data => {
+                    showToast(data.message || 'Episode deleted successfully!', 'success');
+                    
+                    // Remove the card with animation
+                    episodeCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                    episodeCard.style.opacity = '0';
+                    episodeCard.style.transform = 'scale(0.9)';
+                    
+                    setTimeout(() => {
+                        episodeCard.remove();
+                        
+                        // Check if there are no more episodes
+                        const remainingEpisodes = document.querySelectorAll('.episode-card').length;
+                        if (remainingEpisodes === 0) {
+                            document.getElementById('episodesGrid').innerHTML = `
+                                <div class="col-12">
+                                    <div class="text-center py-5">
+                                        <i class="bi bi-collection-play text-muted" style="font-size: 4rem;"></i>
+                                        <h4 class="text-muted mt-3">No episodes found</h4>
+                                        <p class="text-muted">Upload your first episode to get started.</p>
+                                        <a href="/Episodes/Create" class="btn btn-primary">
+                                            <i class="bi bi-plus-circle me-1"></i>Upload Episode
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }, 300);
+                })
+                .catch(error => {
+                    console.error('Delete error:', error);
+                    showToast('Error: ' + error.message, 'danger');
+                    
+                    // Re-enable the button
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+                });
+            }
+        }
+        
+        function showToast(message, type) {
+            // Use PodStream global toast if available, otherwise create simple toast
+            if (window.PodStream && window.PodStream.showToast) {
+                PodStream.showToast(message, type);
+            } else {
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+                toast.style.zIndex = '9999';
+                toast.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+                `;
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 5000);
+            }
+        }
+    </script>
+}

@@ -1,0 +1,144 @@
+﻿@model PodcastWebApp.Models.Podcast
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Podcast Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <div class="podcast-cover me-4">
+                            @if (!string.IsNullOrEmpty(Model.CoverImageURL))
+                            {
+                                <img src="@Model.CoverImageURL" alt="@Model.Title" class="img-fluid rounded" style="width: 200px; height: 200px; object-fit: cover;">
+                            }
+                            else
+                            {
+                                <div class="bg-primary rounded d-flex align-items-center justify-content-center" style="width: 200px; height: 200px;">
+                                    <i class="bi bi-mic-fill text-white" style="font-size: 4rem;"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="flex-grow-1">
+                            <h1 class="h2 mb-2">@Model.Title</h1>
+                            <h6 class="text-muted mb-3">
+                                by @Model.Creator?.FirstName @Model.Creator?.LastName
+                            </h6>
+                            @if (!string.IsNullOrEmpty(Model.Category))
+                            {
+                                <span class="badge bg-secondary mb-3">@Model.Category</span>
+                            }
+                            <p class="mb-3">@Model.Description</p>
+                            
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" onclick="subscribe(@Model.PodcastID)">
+                                    <i class="bi bi-plus-circle me-1"></i>Subscribe
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="share()">
+                                    <i class="bi bi-share me-1"></i>Share
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Episodes List -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-collection-play me-2"></i>
+                        Episodes (@Model.Episodes.Count)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Episodes.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var episode in Model.Episodes.OrderByDescending(e => e.ReleaseDate))
+                            {
+                                <a href="@Url.Action("Details", "Episodes", new { id = episode.EpisodeID })" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center flex-grow-1">
+                                            <i class="bi bi-play-circle-fill text-primary me-3 fs-3"></i>
+                                            <div>
+                                                <h6 class="mb-1">@episode.Title</h6>
+                                                <small class="text-muted">
+                                                    @episode.ReleaseDate.ToString("MMM dd, yyyy") • 
+                                                    @episode.Duration min •
+                                                    @episode.Views views
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-collection-play text-muted" style="font-size: 3rem;"></i>
+                            <p class="text-muted mt-3">No episodes yet</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Podcast Stats</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Total Episodes</small>
+                        <h4>@Model.Episodes.Count</h4>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Total Views</small>
+                        <h4>@Model.Episodes.Sum(e => e.Views)</h4>
+                    </div>
+                    <div>
+                        <small class="text-muted">Created</small>
+                        <h6>@Model.CreatedDate.ToString("MMMM dd, yyyy")</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function subscribe(podcastId) {
+            fetch('/api/subscriptions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ podcastId: podcastId })
+            }).then(() => {
+                alert('Subscribed successfully!');
+            }).catch(() => {
+                alert('Please sign in to subscribe');
+            });
+        }
+
+        function share() {
+            const url = window.location.href;
+            if (navigator.share) {
+                navigator.share({
+                    title: '@Model.Title',
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url);
+                alert('Link copied to clipboard!');
+            }
+        }
+    </script>
+}

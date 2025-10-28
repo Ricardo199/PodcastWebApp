@@ -1,0 +1,123 @@
+@{
+    ViewData["Title"] = "Listener Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">
+        <i class="bi bi-headphones text-primary me-2"></i>
+        My Dashboard
+    </h1>
+    <a href="@Url.Action("Index", "Episodes")" class="btn btn-primary">
+        <i class="bi bi-search me-1"></i>Discover Episodes
+    </a>
+</div>
+
+<div class="row">
+    <!-- Subscriptions -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">My Subscriptions</h5>
+                <a href="@Url.Action("Index", "Subscriptions")" class="btn btn-sm btn-outline-primary">Manage All</a>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center p-3 border rounded">
+                            <i class="bi bi-mic-fill text-primary me-3 fs-4"></i>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Tech Talk Weekly</h6>
+                                <small class="text-muted">3 new episodes</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger">Unsubscribe</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center p-3 border rounded">
+                            <i class="bi bi-mic-fill text-primary me-3 fs-4"></i>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Business Insights</h6>
+                                <small class="text-muted">1 new episode</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger">Unsubscribe</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Episodes -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">New Episodes from Subscriptions</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="bi bi-play-circle-fill text-primary me-3 fs-4"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">The Future of AI in Business</h6>
+                            <small class="text-muted">Tech Talk Weekly • 45 min • 2 hours ago</small>
+                        </div>
+                        <button class="btn btn-sm btn-primary">Play</button>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="bi bi-play-circle-fill text-primary me-3 fs-4"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">Market Trends 2025</h6>
+                            <small class="text-muted">Business Insights • 32 min • 1 day ago</small>
+                        </div>
+                        <button class="btn btn-sm btn-primary">Play</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Listening Stats -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Your Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Episodes Played</span>
+                    <strong>127</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Hours Listened</span>
+                    <strong>89h</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subscriptions</span>
+                    <strong>12</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Comments Posted</span>
+                    <strong>23</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommended -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recommended for You</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="mb-1">Startup Stories</h6>
+                    <small class="text-muted d-block mb-2">Based on your interests in business</small>
+                    <button class="btn btn-sm btn-outline-primary">Subscribe</button>
+                </div>
+                <div class="mb-3">
+                    <h6 class="mb-1">Code & Coffee</h6>
+                    <small class="text-muted d-block mb-2">Programming and development</small>
+                    <button class="btn btn-sm btn-outline-primary">Subscribe</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

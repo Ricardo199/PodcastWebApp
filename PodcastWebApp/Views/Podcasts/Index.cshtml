@@ -1,0 +1,123 @@
+@model List<PodcastWebApp.Models.Podcast>
+@{
+    ViewData["Title"] = "Podcasts";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">
+        <i class="bi bi-mic text-primary me-2"></i>
+        Discover Podcasts
+    </h1>
+    @if (User.IsInRole("Podcaster"))
+    {
+        <a href="@Url.Action("Create")" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Create Podcast
+        </a>
+    }
+</div>
+
+<!-- Search and Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="search" placeholder="Search podcasts..." value="@ViewBag.Search">
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="category">
+                    <option value="">All Categories</option>
+                    <option value="technology">Technology</option>
+                    <option value="business">Business</option>
+                    <option value="education">Education</option>
+                    <option value="entertainment">Entertainment</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary w-100">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Podcasts Grid -->
+<div class="row g-4">
+    @if (Model?.Any() == true)
+    {
+        @foreach (var podcast in Model)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="podcast-cover mb-3">
+                            @if (!string.IsNullOrEmpty(podcast.CoverImageURL))
+                            {
+                                <img src="@podcast.CoverImageURL" alt="@podcast.Title" class="img-fluid rounded" style="max-height: 150px;">
+                            }
+                            else
+                            {
+                                <div class="bg-primary rounded d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px;">
+                                    <i class="bi bi-mic-fill text-white" style="font-size: 3rem;"></i>
+                                </div>
+                            }
+                        </div>
+                        
+                        <h5 class="card-title">@podcast.Title</h5>
+                        <p class="card-text text-muted small">@podcast.Description</p>
+                        
+                        <div class="podcast-meta mb-3">
+                            <small class="text-muted d-block">by @podcast.Creator?.FirstName @podcast.Creator?.LastName</small>
+                            <small class="text-muted">@podcast.Episodes.Count episodes</small>
+                            @if (!string.IsNullOrEmpty(podcast.Category))
+                            {
+                                <span class="badge bg-secondary ms-2">@podcast.Category</span>
+                            }
+                        </div>
+                        
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="@Url.Action("Details", new { id = podcast.PodcastID })" class="btn btn-primary btn-sm">
+                                <i class="bi bi-eye me-1"></i>View
+                            </a>
+                            <button class="btn btn-outline-primary btn-sm" onclick="toggleSubscription(@podcast.PodcastID)">
+                                <i class="bi bi-plus-circle me-1"></i>Subscribe
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-mic text-muted" style="font-size: 4rem;"></i>
+                <h4 class="text-muted mt-3">No podcasts found</h4>
+                <p class="text-muted">Try adjusting your search criteria or browse all podcasts.</p>
+                @if (User.IsInRole("Podcaster"))
+                {
+                    <a href="@Url.Action("Create")" class="btn btn-primary">Create Your First Podcast</a>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function toggleSubscription(podcastId) {
+            // Implementation for subscription toggle
+            PodStream.API.post('/api/subscriptions', { podcastId: podcastId })
+                .then(() => {
+                    PodStream.showToast('Subscribed successfully!', 'success');
+                })
+                .catch(() => {
+                    PodStream.showToast('Please sign in to subscribe', 'warning');
+                });
+        }
+    </script>
+}

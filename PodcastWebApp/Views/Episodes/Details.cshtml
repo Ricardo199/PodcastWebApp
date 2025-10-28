@@ -1,0 +1,291 @@
+@model PodcastWebApp.Models.ViewModels.EpisodeDetailViewModel
+@{
+    ViewData["Title"] = Model.Episode.Title;
+}
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <!-- Episode Header -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-start mb-3">
+                    <div class="episode-artwork me-4">
+                        <div class="bg-primary rounded d-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                            <i class="bi bi-play-circle-fill text-white" style="font-size: 3rem;"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h1 class="h3 mb-2">@Model.Episode.Title</h1>
+                        <h6 class="text-muted mb-2">
+                            <a href="@Url.Action("Details", "Podcasts", new { id = Model.Podcast.PodcastID })" class="text-decoration-none">
+                                @Model.Podcast.Title
+                            </a>
+                        </h6>
+                        <div class="episode-meta text-muted small mb-3">
+                            <span class="me-3"><i class="bi bi-calendar me-1"></i>@Model.Episode.ReleaseDate.ToString("MMMM dd, yyyy")</span>
+                            <span class="me-3"><i class="bi bi-clock me-1"></i>@Model.Episode.Duration minutes</span>
+                            <span class="me-3"><i class="bi bi-eye me-1"></i>@Model.Episode.Views views</span>
+                            @if (!string.IsNullOrEmpty(Model.Episode.Host))
+                            {
+                                <span><i class="bi bi-person me-1"></i>@Model.Episode.Host</span>
+                            }
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-primary" onclick="playEpisode(@Model.Episode.EpisodeID)">
+                                <i class="bi bi-play-fill me-1"></i>Play Episode
+                            </button>
+                            @if (!Model.IsSubscribed)
+                            {
+                                <button class="btn btn-outline-primary" onclick="subscribe(@Model.Podcast.PodcastID)">
+                                    <i class="bi bi-plus-circle me-1"></i>Subscribe
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-outline-secondary" onclick="unsubscribe(@Model.Podcast.PodcastID)">
+                                    <i class="bi bi-check-circle me-1"></i>Subscribed
+                                </button>
+                            }
+                            <button class="btn btn-outline-secondary" onclick="shareEpisode()">
+                                <i class="bi bi-share me-1"></i>Share
+                            </button>
+                            @if (Model.CanEdit)
+                            {
+                                <a href="@Url.Action("Edit", new { id = Model.Episode.EpisodeID })" class="btn btn-outline-warning">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Episode Description -->
+                @if (!string.IsNullOrEmpty(Model.Episode.Description))
+                {
+                    <div class="episode-description">
+                        <h6>About this episode</h6>
+                        <p>@Model.Episode.Description</p>
+                    </div>
+                }
+                
+                <!-- Audio Player -->
+                @if (!string.IsNullOrEmpty(Model.Episode.AudioFileURL))
+                {
+                    <div class="audio-player mt-4">
+                        <audio controls class="w-100" id="episodePlayer">
+                            <source src="@Model.Episode.AudioFileURL" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-dots me-2"></i>
+                    Comments (@Model.Comments.Count)
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Add Comment Form -->
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <form id="commentForm" class="mb-4">
+                        <div class="mb-3">
+                            <textarea class="form-control" id="commentText" rows="3" placeholder="Share your thoughts about this episode..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-1"></i>Post Comment
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <a href="@Url.Action("Login", "Account")">Sign in</a> to join the conversation.
+                    </div>
+                }
+
+                <!-- Comments List -->
+                <div id="commentsList">
+                    @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
+                    {
+                        <div class="comment mb-3 p-3 border rounded" data-comment-id="@comment.Id">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-person-circle text-muted me-2"></i>
+                                    <strong>User @comment.UserId.Substring(0, 8)</strong>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <small class="text-muted me-2">@comment.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</small>
+                                    @if (User.Identity.IsAuthenticated && comment.UserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                                    {
+                                        var canEdit = (DateTime.UtcNow - comment.CreatedAt).TotalHours < 24;
+                                        @if (canEdit)
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment('@comment.Id')">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        }
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteComment('@comment.Id')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="comment-text">@comment.Text</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Podcast Info -->
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-mic-fill text-primary" style="font-size: 3rem;"></i>
+                </div>
+                <h6>@Model.Podcast.Title</h6>
+                <p class="text-muted small">@Model.Podcast.Description</p>
+                <a href="@Url.Action("Details", "Podcasts", new { id = Model.Podcast.PodcastID })" class="btn btn-outline-primary btn-sm">
+                    View Podcast
+                </a>
+            </div>
+        </div>
+
+        <!-- More Episodes -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">More from this podcast</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <!-- This would be populated with related episodes -->
+                    <div class="list-group-item px-0">
+                        <h6 class="mb-1">Episode Title</h6>
+                        <small class="text-muted">Released 3 days ago</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function playEpisode(episodeId) {
+            const player = document.getElementById('episodePlayer');
+            if (player) {
+                player.play();
+                // Update view count
+                fetch(`/api/episodes/${episodeId}/view`, { method: 'PUT' })
+                    .then(() => {
+                        // Update view count in UI
+                        const viewElement = document.querySelector('.bi-eye').parentElement;
+                        const currentViews = parseInt(viewElement.textContent.match(/\d+/)[0]);
+                        viewElement.innerHTML = `<i class="bi bi-eye me-1"></i>${currentViews + 1} views`;
+                    });
+            }
+        }
+
+        function subscribe(podcastId) {
+            fetch(`/api/subscriptions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ podcastId: podcastId })
+            }).then(() => location.reload());
+        }
+
+        function unsubscribe(podcastId) {
+            fetch(`/api/subscriptions/${podcastId}`, { method: 'DELETE' })
+                .then(() => location.reload());
+        }
+
+        function shareEpisode() {
+            const url = window.location.href;
+            if (navigator.share) {
+                navigator.share({
+                    title: '@Model.Episode.Title',
+                    text: 'Check out this episode: @Model.Episode.Title',
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url);
+                showToast('Link copied to clipboard!', 'success');
+            }
+        }
+
+        // Comment functionality
+        document.getElementById('commentForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const text = document.getElementById('commentText').value;
+            if (!text.trim()) return;
+
+            fetch('/api/comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    episodeId: @Model.Episode.EpisodeID,
+                    text: text
+                })
+            }).then(() => location.reload());
+        });
+
+        function editComment(commentId) {
+            // Implementation for inline comment editing
+            const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
+            const textDiv = commentDiv.querySelector('.comment-text');
+            const currentText = textDiv.textContent;
+            
+            textDiv.innerHTML = `
+                <textarea class="form-control mb-2">${currentText}</textarea>
+                <button class="btn btn-sm btn-primary me-1" onclick="saveComment('${commentId}')">Save</button>
+                <button class="btn btn-sm btn-secondary" onclick="cancelEdit('${commentId}', '${currentText}')">Cancel</button>
+            `;
+        }
+
+        function saveComment(commentId) {
+            const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
+            const textarea = commentDiv.querySelector('textarea');
+            const newText = textarea.value;
+
+            fetch(`/api/comments/${commentId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: newText })
+            }).then(() => location.reload());
+        }
+
+        function cancelEdit(commentId, originalText) {
+            const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
+            const textDiv = commentDiv.querySelector('.comment-text');
+            textDiv.textContent = originalText;
+        }
+
+        function deleteComment(commentId) {
+            if (confirm('Are you sure you want to delete this comment?')) {
+                fetch(`/api/comments/${commentId}`, { method: 'DELETE' })
+                    .then(() => location.reload());
+            }
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+            toast.style.zIndex = '9999';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+}

@@ -1,0 +1,130 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using PodcastWebApp.Models
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+@{
+    var user = User;
+    string? userName = user?.Identity?.IsAuthenticated == true ? UserManager.GetUserName(User) : null;
+    bool isPodcaster = User.IsInRole("Podcaster");
+    bool isAdmin = User.IsInRole("Admin");
+    bool isListener = User.IsInRole("Listener");
+}
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+            <img src="~/images/logo-small.png" alt="" class="me-2" style="height:28px;" />
+            <strong>PodStream</strong>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <!-- Left: Primary Links -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Episodes" asp-action="Index">Browse Episodes</a>
+                </li>
+
+                @if (isPodcaster)
+                {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="podcasterMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Podcaster
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="podcasterMenu">
+                            <li><a class="dropdown-item" asp-controller="Podcasts" asp-action="Index">My Podcasts</a></li>
+                            <li><a class="dropdown-item" asp-controller="Episodes" asp-action="Create">Upload Episode</a></li>
+                            <li><a class="dropdown-item" asp-controller="Analytics" asp-action="Dashboard">Analytics</a></li>
+                        </ul>
+                    </li>
+                }
+
+                @if (isAdmin)
+                {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Admin
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="adminMenu">
+                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Manage Users</a></li>
+                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="EpisodesPending">Approve Episodes</a></li>
+                            <li><a class="dropdown-item" asp-controller="Analytics" asp-action="Reports">Reports</a></li>
+                        </ul>
+                    </li>
+                }
+
+                @if (isListener)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Subscriptions" asp-action="Index">Subscriptions</a>
+                    </li>
+                }
+            </ul>
+
+            <!-- Center: Search -->
+            <form class="d-flex mx-lg-3" asp-controller="Episodes" asp-action="Search" method="get" role="search">
+                <input class="form-control me-2" type="search" name="q" placeholder="Search by title, topic or host" aria-label="Search" />
+                <button class="btn btn-outline-light" type="submit">Search</button>
+            </form>
+
+            <!-- Right: Notifications + User -->
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                <li class="nav-item me-2">
+                    <a class="nav-link position-relative" asp-controller="Notifications" asp-action="Index" title="Notifications">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notifyBadge" style="font-size:.6rem; display:none;">0</span>
+                    </a>
+                </li>
+
+                @if (SignInManager.IsSignedIn(User))
+                {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="~/images/default-avatar.png" alt="avatar" class="rounded-circle me-2" style="width:28px;height:28px;object-fit:cover;" />
+                            <span>@userName</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                            <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Profile</a></li>
+                            <li><a class="dropdown-item" asp-controller="Account" asp-action="Settings">Settings</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dropdown-item">Sign out</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                }
+                else
+                {
+                    <li class="nav-item">
+                        <a class="btn btn-light btn-sm me-2" asp-controller="Account" asp-action="Login">Sign in</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="Register">Register</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@section Scripts {
+    <script>
+        // small helper to show unread notification badge when count > 0
+        (function () {
+          const badge = document.getElementById('notifyBadge');
+          // fetch unread count endpoint (optional) - server should provide /Notifications/UnreadCount
+          fetch('/Notifications/UnreadCount').then(r => r.json()).then(data => {
+            if (data && data.count > 0) {
+              badge.style.display = 'inline-block';
+              badge.textContent = data.count > 99 ? '99+' : data.count;
+            }
+          }).catch(() => { /* silent */ });
+        })();
+    </script>
+}

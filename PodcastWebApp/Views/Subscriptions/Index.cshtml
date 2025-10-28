@@ -1,0 +1,260 @@
+@{
+    ViewData["Title"] = "My Subscriptions";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">
+        <i class="bi bi-bookmark-heart text-primary me-2"></i>
+        My Subscriptions
+    </h1>
+    <a href="@Url.Action("Index", "Podcasts")" class="btn btn-primary">
+        <i class="bi bi-search me-1"></i>Discover More
+    </a>
+</div>
+
+<!-- Subscription Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-mic-fill fs-1 mb-2"></i>
+                <h3 class="mb-0">12</h3>
+                <small>Subscriptions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-collection-play-fill fs-1 mb-2"></i>
+                <h3 class="mb-0">47</h3>
+                <small>New Episodes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-fill fs-1 mb-2"></i>
+                <h3 class="mb-0">18h</h3>
+                <small>Unplayed Time</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-heart-fill fs-1 mb-2"></i>
+                <h3 class="mb-0">156</h3>
+                <small>Episodes Liked</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<ul class="nav nav-tabs mb-4" id="subscriptionTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+            All Subscriptions
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="new-tab" data-bs-toggle="tab" data-bs-target="#new" type="button" role="tab">
+            New Episodes <span class="badge bg-danger ms-1">5</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="favorites-tab" data-bs-toggle="tab" data-bs-target="#favorites" type="button" role="tab">
+            Favorites
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="subscriptionTabContent">
+    <!-- All Subscriptions -->
+    <div class="tab-pane fade show active" id="all" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="podcast-cover me-3">
+                                <i class="bi bi-mic-fill text-primary fs-1"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="card-title mb-1">Tech Talk Weekly</h6>
+                                <small class="text-muted">by John Doe</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-success">3 new</span>
+                                    <span class="badge bg-secondary ms-1">Technology</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p class="card-text small text-muted mb-3">
+                            Weekly discussions about the latest in technology and innovation.
+                        </p>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="#" class="btn btn-primary">
+                                    <i class="bi bi-play-fill"></i>
+                                </a>
+                                <a href="#" class="btn btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                            <button class="btn btn-outline-danger btn-sm" onclick="unsubscribe(1)">
+                                <i class="bi bi-bookmark-x me-1"></i>Unsubscribe
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="podcast-cover me-3">
+                                <i class="bi bi-mic-fill text-primary fs-1"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="card-title mb-1">Business Insights</h6>
+                                <small class="text-muted">by Jane Smith</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-success">1 new</span>
+                                    <span class="badge bg-secondary ms-1">Business</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p class="card-text small text-muted mb-3">
+                            Deep dives into business strategy and market analysis.
+                        </p>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="#" class="btn btn-primary">
+                                    <i class="bi bi-play-fill"></i>
+                                </a>
+                                <a href="#" class="btn btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                            <button class="btn btn-outline-danger btn-sm" onclick="unsubscribe(2)">
+                                <i class="bi bi-bookmark-x me-1"></i>Unsubscribe
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="podcast-cover me-3">
+                                <i class="bi bi-mic-fill text-primary fs-1"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="card-title mb-1">Code & Coffee</h6>
+                                <small class="text-muted">by Mike Johnson</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-secondary ms-1">Programming</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p class="card-text small text-muted mb-3">
+                            Programming tutorials and developer discussions.
+                        </p>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="#" class="btn btn-primary">
+                                    <i class="bi bi-play-fill"></i>
+                                </a>
+                                <a href="#" class="btn btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                            <button class="btn btn-outline-danger btn-sm" onclick="unsubscribe(3)">
+                                <i class="bi bi-bookmark-x me-1"></i>Unsubscribe
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Episodes -->
+    <div class="tab-pane fade" id="new" role="tabpanel">
+        <div class="list-group">
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-play-circle-fill text-primary me-3 fs-4"></i>
+                        <div>
+                            <h6 class="mb-1">The Future of AI in Business</h6>
+                            <small class="text-muted">Tech Talk Weekly • 45 min • 2 hours ago</small>
+                        </div>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-primary">Play</button>
+                        <button class="btn btn-outline-secondary">
+                            <i class="bi bi-bookmark"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-play-circle-fill text-primary me-3 fs-4"></i>
+                        <div>
+                            <h6 class="mb-1">Market Trends 2025</h6>
+                            <small class="text-muted">Business Insights • 32 min • 1 day ago</small>
+                        </div>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-primary">Play</button>
+                        <button class="btn btn-outline-secondary">
+                            <i class="bi bi-bookmark"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites -->
+    <div class="tab-pane fade" id="favorites" role="tabpanel">
+        <div class="text-center py-5">
+            <i class="bi bi-heart text-muted" style="font-size: 4rem;"></i>
+            <h4 class="text-muted mt-3">No favorites yet</h4>
+            <p class="text-muted">Mark episodes as favorites to see them here.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function unsubscribe(podcastId) {
+            PodStream.confirmAction('Are you sure you want to unsubscribe from this podcast?', () => {
+                PodStream.API.delete(`/api/subscriptions/${podcastId}`)
+                    .then(() => {
+                        PodStream.showToast('Unsubscribed successfully', 'success');
+                        // Remove the card from UI
+                        location.reload();
+                    })
+                    .catch(() => {
+                        PodStream.showToast('Failed to unsubscribe', 'danger');
+                    });
+            });
+        }
+    </script>
+}

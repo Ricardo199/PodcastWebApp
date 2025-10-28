@@ -1,0 +1,110 @@
+@model PodcastWebApp.Models.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Discover Amazing Podcasts";
+    ViewData["ContainerClass"] = "container-fluid";
+}
+
+<!-- Hero Section -->
+<section class="hero-section bg-primary text-white py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-3">Discover Amazing Podcasts</h1>
+                <p class="lead mb-4">Stream, discover, and engage with the best podcast content. Join our community of listeners and creators.</p>
+                <div class="d-flex gap-3">
+                    <a href="@Url.Action("Register", "Account")" class="btn btn-light btn-lg">Get Started</a>
+                    <a href="@Url.Action("Index", "EpisodesView")" class="btn btn-outline-light btn-lg">Browse Episodes</a>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <i class="bi bi-broadcast display-1 opacity-75"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <!-- Featured Episodes -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h3 mb-0">🔥 Trending Episodes</h2>
+            <a href="@Url.Action("Index", "EpisodesView")" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="row g-4">
+            @foreach (var episode in Model.FeaturedEpisodes)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start mb-2">
+                                <i class="bi bi-play-circle-fill text-primary me-2 fs-4"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-1">@episode.Title</h6>
+                                    <small class="text-muted">@episode.Podcast?.Title</small>
+                                </div>
+                            </div>
+                            <p class="card-text small text-muted mb-2">@episode.Description</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-eye me-1"></i>@episode.Views views
+                                </small>
+                                <a href="@Url.Action("Details", "EpisodesView", new { id = episode.EpisodeID })" class="btn btn-sm btn-primary">Listen</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Latest Episodes -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h3 mb-0">🆕 Latest Episodes</h2>
+            <a href="@Url.Action("Index", "EpisodesView")" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="row g-3">
+            @foreach (var episode in Model.LatestEpisodes)
+            {
+                <div class="col-md-6 col-xl-3">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body p-3">
+                            <h6 class="card-title mb-1">@episode.Title</h6>
+                            <small class="text-muted d-block mb-2">@episode.Podcast?.Title</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">@episode.ReleaseDate.ToString("MMM dd")</small>
+                                <a href="@Url.Action("Details", "EpisodesView", new { id = episode.EpisodeID })" class="btn btn-sm btn-outline-primary">Play</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Featured Podcasts -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h3 mb-0">⭐ Featured Podcasts</h2>
+            <a href="@Url.Action("Index", "Podcasts")" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="row g-4">
+            @foreach (var podcast in Model.FeaturedPodcasts)
+            {
+                <div class="col-md-6 col-lg-3">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="bi bi-mic-fill text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                            <h6 class="card-title">@podcast.Title</h6>
+                            <p class="card-text small text-muted">@podcast.Description</p>
+                            <small class="text-muted d-block mb-2">by @podcast.Creator?.FirstName @podcast.Creator?.LastName</small>
+                            <a href="@Url.Action("Details", "Podcasts", new { id = podcast.PodcastID })" class="btn btn-primary btn-sm">Subscribe</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+</div>

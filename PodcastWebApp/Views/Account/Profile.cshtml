@@ -1,0 +1,111 @@
+@model PodcastWebApp.Models.User
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-person text-primary me-2"></i>
+                    Profile Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="UpdateProfile">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="firstName" name="firstName" value="@Model.FirstName">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="lastName" name="lastName" value="@Model.LastName">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" value="@Model.Email" disabled>
+                        <small class="text-muted">Email cannot be changed</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">Bio</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- AWS Account Info Card for Demo -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="bi bi-cloud me-2"></i>
+                    AWS Integration Status
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                    <span>Parameter Store Connected</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                    <span>S3 Bucket Configured</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                    <span>DynamoDB Simulation Active</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                    <span>Elastic Beanstalk Ready</span>
+                </div>
+                <hr>
+                <small class="text-muted">
+                    <strong>Account:</strong> AWS Account ID: ****-****-1234<br>
+                    <strong>Region:</strong> us-east-1<br>
+                    <strong>Environment:</strong> Production
+                </small>
+            </div>
+        </div>
+
+        <!-- Account Stats -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Account Statistics</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Member Since</span>
+                    <strong>@Model.CreatedAt.ToString("MMM yyyy")</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Total Listens</span>
+                    <strong>127</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Comments Posted</span>
+                    <strong>23</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Subscriptions</span>
+                    <strong>12</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

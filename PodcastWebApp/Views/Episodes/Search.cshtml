@@ -1,0 +1,210 @@
+@model PodcastWebApp.Models.ViewModels.SearchResultsViewModel
+@{
+    ViewData["Title"] = $"Search Results for '{Model.Query}'";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">
+        <i class="bi bi-search text-primary me-2"></i>
+        Search Results
+    </h1>
+    <small class="text-muted">
+        @(Model.Episodes.Count + Model.Podcasts.Count) results for "@Model.Query"
+    </small>
+</div>
+
+<!-- Search Bar -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Search" class="row g-3">
+            <div class="col-md-6">
+                <input type="text" class="form-control form-control-lg" name="q" placeholder="Search episodes and podcasts..." value="@Model.Query" autofocus>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="sortBy">
+                    <option value="relevance" selected="@(Model.SortBy == "relevance")">Most Relevant</option>
+                    <option value="recent" selected="@(Model.SortBy == "recent")">Most Recent</option>
+                    <option value="popular" selected="@(Model.SortBy == "popular")">Most Popular</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="filterType">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.FilterType))">All Content</option>
+                    <option value="episodes" selected="@(Model.FilterType == "episodes")">Episodes Only</option>
+                    <option value="podcasts" selected="@(Model.FilterType == "podcasts")">Podcasts Only</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Episodes.Any() && !Model.Podcasts.Any())
+{
+    <!-- No Results -->
+    <div class="text-center py-5">
+        <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+        <h4 class="text-muted mt-3">No results found</h4>
+        <p class="text-muted">Try different keywords or browse our featured content.</p>
+        <a href="@Url.Action("Index", "Home")" class="btn btn-primary">Browse Featured</a>
+    </div>
+}
+else
+{
+    <!-- Results Tabs -->
+    <ul class="nav nav-tabs mb-4" id="searchTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="episodes-tab" data-bs-toggle="tab" data-bs-target="#episodes" type="button" role="tab">
+                Episodes (@Model.Episodes.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="podcasts-tab" data-bs-toggle="tab" data-bs-target="#podcasts" type="button" role="tab">
+                Podcasts (@Model.Podcasts.Count)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="searchTabContent">
+        <!-- Episodes Results -->
+        <div class="tab-pane fade show active" id="episodes" role="tabpanel">
+            @if (Model.Episodes.Any())
+            {
+                <div class="row g-4">
+                    @foreach (var episode in Model.Episodes)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-start mb-3">
+                                        <i class="bi bi-play-circle-fill text-primary me-3 fs-1"></i>
+                                        <div class="flex-grow-1">
+                                            <h6 class="card-title mb-1">
+                                                @Html.Raw(HighlightSearchTerm(episode.Title, Model.Query))
+                                            </h6>
+                                            <small class="text-muted">@episode.Podcast?.Title</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <p class="card-text small text-muted mb-3">
+                                        @Html.Raw(HighlightSearchTerm(episode.Description, Model.Query))
+                                    </p>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center text-muted small mb-3">
+                                        <span><i class="bi bi-clock me-1"></i>@episode.Duration min</span>
+                                        <span><i class="bi bi-eye me-1"></i>@episode.Views views</span>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <a href="@Url.Action("Details", new { id = episode.EpisodeID })" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-play-fill me-1"></i>Listen
+                                        </a>
+                                        @if (!string.IsNullOrEmpty(episode.Topic))
+                                        {
+                                            <span class="badge bg-secondary">@episode.Topic</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <i class="bi bi-collection-play text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-2">No episodes found</h5>
+                    <p class="text-muted">Try searching for different keywords.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Podcasts Results -->
+        <div class="tab-pane fade" id="podcasts" role="tabpanel">
+            @if (Model.Podcasts.Any())
+            {
+                <div class="row g-4">
+                    @foreach (var podcast in Model.Podcasts)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="bi bi-mic-fill text-primary" style="font-size: 3rem;"></i>
+                                    </div>
+                                    
+                                    <h5 class="card-title">
+                                        @Html.Raw(HighlightSearchTerm(podcast.Title, Model.Query))
+                                    </h5>
+                                    
+                                    <p class="card-text text-muted small">
+                                        @Html.Raw(HighlightSearchTerm(podcast.Description, Model.Query))
+                                    </p>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block">by @podcast.Creator?.FirstName @podcast.Creator?.LastName</small>
+                                        <small class="text-muted">@podcast.Episodes.Count episodes</small>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <a href="@Url.Action("Details", "Podcasts", new { id = podcast.PodcastID })" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-eye me-1"></i>View
+                                        </a>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="subscribe(@podcast.PodcastID)">
+                                            <i class="bi bi-plus-circle me-1"></i>Subscribe
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <i class="bi bi-mic text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-2">No podcasts found</h5>
+                    <p class="text-muted">Try searching for different keywords.</p>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@functions {
+    private string HighlightSearchTerm(string text, string searchTerm)
+    {
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(searchTerm))
+            return text;
+            
+        var index = text.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase);
+        if (index >= 0)
+        {
+            var before = text.Substring(0, index);
+            var match = text.Substring(index, searchTerm.Length);
+            var after = text.Substring(index + searchTerm.Length);
+            return $"{before}<mark class=\"bg-warning\">{match}</mark>{after}";
+        }
+        return text;
+    }
+}
+
+@section Scripts {
+    <script>
+        function subscribe(podcastId) {
+            PodStream.API.post('/api/subscriptions', { podcastId: podcastId })
+                .then(() => {
+                    PodStream.showToast('Subscribed successfully!', 'success');
+                })
+                .catch(() => {
+                    PodStream.showToast('Please sign in to subscribe', 'warning');
+                });
+        }
+    </script>
+}

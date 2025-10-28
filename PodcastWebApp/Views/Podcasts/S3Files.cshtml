@@ -1,0 +1,154 @@
+﻿@{
+    ViewData["Title"] = "S3 Files Manager";
+}
+
+<div class="container py-4">
+    <h2><i class="bi bi-cloud-arrow-down"></i> S3 Files Manager</h2>
+    <p class="text-muted">Import audio files from your S3 bucket into the podcast database.</p>
+
+    <div class="row mb-3">
+        <div class="col">
+            <button class="btn btn-primary" onclick="loadS3Files()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Files
+            </button>
+            <button class="btn btn-success" onclick="importAllFiles()">
+                <i class="bi bi-download"></i> Import All Files
+            </button>
+        </div>
+    </div>
+
+    <div id="loading" class="text-center py-5" style="display:none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading S3 files...</p>
+    </div>
+
+    <div id="filesContainer" class="row g-3"></div>
+</div>
+
+@section Scripts {
+<script>
+    let s3Files = [];
+
+    // Load S3 files on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadS3Files();
+    });
+
+    async function loadS3Files() {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('filesContainer').innerHTML = '';
+
+        try {
+            const response = await fetch('/admin/api/s3-files');
+            if (!response.ok) throw new Error('Failed to load files');
+
+            s3Files = await response.json();
+            displayFiles(s3Files);
+        } catch (error) {
+            alert('Error loading S3 files: ' + error.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function displayFiles(files) {
+        const container = document.getElementById('filesContainer');
+        container.innerHTML = '';
+
+        if (files.length === 0) {
+            container.innerHTML = '<div class="col-12"><div class="alert alert-info">No audio files found in S3 bucket.</div></div>';
+            return;
+        }
+
+        files.forEach(file => {
+            const card = `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-truncate" title="${file.FileName}">${file.FileName}</h6>
+                            <p class="card-text small text-muted">
+                                <i class="bi bi-hdd"></i> ${file.Size}<br>
+                                <i class="bi bi-calendar"></i> ${new Date(file.LastModified).toLocaleDateString()}
+                            </p>
+                            <audio controls class="w-100 mb-2" style="height: 35px;">
+                                <source src="${file.Url}" type="audio/mpeg">
+                            </audio>
+                            <button class="btn btn-sm btn-primary w-100" onclick="importSingleFile('${escapeHtml(file.FileName)}', '${escapeHtml(file.Url)}')">
+                                <i class="bi bi-download"></i> Import to Database
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += card;
+        });
+    }
+
+    async function importSingleFile(fileName, url) {
+        if (!confirm(`Import "${fileName}" as an episode?`)) return;
+
+        try {
+            const response = await fetch('/admin/api/import-s3-file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fileName: fileName,
+                    url: url,
+                    title: extractTitle(fileName),
+                    description: 'Imported from S3',
+                    host: 'Unknown',
+                    topic: 'General'
+                })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert('✓ ' + result.message);
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error importing file: ' + error.message);
+        }
+    }
+
+    async function importAllFiles() {
+        if (!confirm(`Import all ${s3Files.length} files into the database?`)) return;
+
+        try {
+            const response = await fetch('/admin/api/import-all-s3', {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert('✓ ' + result.message);
+                loadS3Files(); // Refresh the list
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error importing files: ' + error.message);
+        }
+    }
+
+    function extractTitle(fileName) {
+        return fileName.replace(/\.[^/.]+$/, "").replace(/_/g, " ").replace(/-/g, " ");
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+</script>
+}
