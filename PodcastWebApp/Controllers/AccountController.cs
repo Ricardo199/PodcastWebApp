@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PodcastWebApp.Models;
+using PodcastWebApp.Models.ViewModels;
+using PodcastWebApp.Data;
 
 namespace PodcastWebApp.Controllers
 {
@@ -10,12 +13,18 @@ namespace PodcastWebApp.Controllers
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ApplicationDbContext _context;
 
-        public AccountController(UserManager<User> userManager, SignInManager<User> signInManager, RoleManager<IdentityRole> roleManager)
+        public AccountController(
+            UserManager<User> userManager, 
+            SignInManager<User> signInManager, 
+            RoleManager<IdentityRole> roleManager,
+            ApplicationDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
+            _context = context;
         }
 
         [HttpGet]
@@ -82,6 +91,11 @@ namespace PodcastWebApp.Controllers
         public async Task<IActionResult> Dashboard()
         {
             var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
+            
             var roles = await _userManager.GetRolesAsync(user);
             
             if (roles.Contains("Podcaster"))
@@ -93,9 +107,37 @@ namespace PodcastWebApp.Controllers
         }
 
         [Authorize(Roles = "Podcaster")]
-        public IActionResult PodcasterDashboard()
+        public async Task<IActionResult> PodcasterDashboard()
         {
-            return View();
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
+            
+            // Fetch user's podcasts with episodes
+            var podcasts = await _context.Podcasts
+                .Where(p => p.CreatorID == user.Id)
+                .Include(p => p.Episodes)
+                .ToListAsync();
+            
+            // Calculate stats
+            var totalViews = podcasts.SelectMany(p => p.Episodes).Sum(e => e.Views);
+            var totalEpisodes = podcasts.SelectMany(p => p.Episodes).Count();
+            var totalComments = 0; // Update when you have comments table
+            var totalSubscribers = 0; // Update when you have subscriptions table
+            
+            // Create view model
+            var viewModel = new PodcasterDashboardViewModel
+            {
+                TotalViews = totalViews,
+                TotalEpisodes = totalEpisodes,
+                TotalComments = totalComments,
+                TotalSubscribers = totalSubscribers,
+                Podcasts = podcasts
+            };
+            
+            return View(viewModel);
         }
 
         [Authorize(Roles = "Listener")]
@@ -114,7 +156,38 @@ namespace PodcastWebApp.Controllers
         public async Task<IActionResult> Profile()
         {
             var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
             return View(user);
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> UpdateProfile(string firstName, string lastName, string bio)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
+
+            user.FirstName = firstName ?? "";
+            user.LastName = lastName ?? "";
+            
+            var result = await _userManager.UpdateAsync(user);
+            
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = "Profile updated successfully!";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Failed to update profile.";
+            }
+            
+            return RedirectToAction("Profile");
         }
 
         [Authorize]

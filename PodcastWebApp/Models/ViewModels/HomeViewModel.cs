@@ -18,6 +18,15 @@ namespace PodcastWebApp.Models.ViewModels
         public int TotalComments { get; set; }
     }
 
+    public class PodcasterDashboardViewModel
+    {
+        public int TotalViews { get; set; }
+        public int TotalEpisodes { get; set; }
+        public int TotalComments { get; set; }
+        public int TotalSubscribers { get; set; }
+        public List<Podcast> Podcasts { get; set; } = new List<Podcast>();
+    }
+
     public class EpisodeDetailViewModel
     {
         public Episode Episode { get; set; } = new();

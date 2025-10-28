@@ -166,5 +166,19 @@ app.UseAuthorization();
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
+// Add this after app.UseStaticFiles();
+app.Use(async (context, next) =>
+{
+    // Disable caching for dashboard pages
+    if (context.Request.Path.StartsWithSegments("/Account/PodcasterDashboard") ||
+        context.Request.Path.StartsWithSegments("/Account/Dashboard"))
+    {
+        context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+        context.Response.Headers.Append("Pragma", "no-cache");
+        context.Response.Headers.Append("Expires", "0");
+    }
+    await next();
+});
+
 Console.WriteLine("✓ Application started successfully");
 app.Run();
